@@ -1,8 +1,7 @@
-Markup: # Prerequisites: #
+# Prerequisites: #
+- python3
+- ffmpeg
 
-Markup: - python3
-        - ffmpeg
-
-Markup: # Installation #
-Markup: 1. Markup: `pip3 install youtube-dl`
-Markup: 2. Markup: `python3 main.py`
+# Installation #
+1. `pip3 install youtube-dl`
+2. `python3 main.py`
