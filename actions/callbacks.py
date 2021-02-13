@@ -51,11 +51,14 @@ class CallBacks:
         with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
             load_data=json.load(db_rurl)
         filtered_items={k:v for k,v in load_data.items() if v[-1] == 0}
-        print(filtered_items)
+        for k in filtered_items.keys():
+            if f'item{k}' in self.procs:
+                filtered_items[k]=None
         for k, v in filtered_items.items():
-            print('active threads:', th.active_count())
-            th.Thread(target=self._downloadUrl, args=(v[0], k, dest, frmt)).start()
-            sleep(0.4)
+            if v != None:
+                print('active threads:', th.active_count())
+                th.Thread(target=self._downloadUrl, args=(v[0], k, dest, frmt)).start()
+                sleep(0.4)
             
     # bind functions
     # infotree bind function
@@ -87,6 +90,7 @@ class CallBacks:
                     infos.pop(0)
                     infos.pop(0)
                     infos.append(1)
+                    self.procs.remove(item)
                     self.info_tree.delete(item)
                 with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
                     load_data=json.load(db_rurl)
@@ -104,9 +108,19 @@ class CallBacks:
     def _pause(self):
         active_th=th.enumerate()
         keys=[i.getName() for i in active_th]
-        print(keys)
-        for item in self.item_selected:
-            if item in keys:
-                active_th[keys.index(item)]
-                
-            else: print('error')
+        try:
+            for item in self.item_selected:
+                if item in keys:
+                    self.killproc.append(item)
+                else: print('error')
+        except Exception as e:
+            print(e)
+            msgbox.showerror('Select Item', 'Select an item')
+    def _pauseall(self):
+        active_th=th.enumerate()
+        active_th.pop(0)
+        keys=[i.getName() for i in active_th]
+        for key in keys:
+            self.killproc.append(key)
+        if keys == []:
+            msgbox.showerror('No Item', 'No items to pause')

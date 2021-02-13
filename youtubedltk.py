@@ -13,55 +13,56 @@ from actions.callbacks import CallBacks
 class UI(Actions, CallBacks):
 
     def __init__(self, master):
+        self.status=[]
+        self.killproc=[]
+        self.procs=[]
         self.base_dir=os.getcwd()
-        # Frame for Url
-        self.url_frame=Frame(master, relief=SUNKEN).grid(
-            row=0, column=3)
         
-        self.url_entry=ttk.Entry(self.url_frame, width=80)
-        self.url_entry.grid(
-            row=0, column=0, columnspan=4, rowspan=2
-            )
+        self.url_frame=ttk.Frame(master)
+        self.url_frame.grid(row=0, column=0)
+        self.url_entry=ttk.Entry(self.url_frame, width=60)
+        self.url_entry.grid(row=1, column=0)
         self.url_entry.insert(0, 'Paste Url Here')
         
+        # Frame for Url
+        self.url_subframe=ttk.Frame(master, relief='groove')
+        self.url_subframe.grid(
+            row=2, column=0)
+        
         # Destination
-        self.dest=ttk.Combobox(self.url_frame,
+        self.dest=ttk.Combobox(self.url_subframe,
         text='')
         self.dest.grid(
-            row=4, column=0
+            row=3, column=0
             )
         self.dest.insert(0, 'Select Destination ....')
         self.dest.state(['readonly'])
         
-        # Adds Url
-        self.addbtn=ttk.Button(self.url_frame,
-        text='Add', command=self._addBtn)
-        self.addbtn.grid(
-            row=4, column=1
-            )
-        
         # Select a format
-        self.formats=ttk.Combobox(self.url_frame, values=(
-            'mp4', 'mp3', 'wma'))
+        self.formats=ttk.Combobox(self.url_subframe, values=(
+            'mp4', 'mp3'))
         self.formats.grid(
-            row=4, column=2
+            row=3, column=1
             )
         self.formats.insert(0, 'Select Format')
         self.formats.state(['readonly'])
         
-        # Info Box
-        self.info_frame=ttk.Frame(master).grid(
-            row=5, column=0
+        # Adds Url
+        self.addbtn=ttk.Button(self.url_subframe,
+        text='Add', command=self._addBtn)
+        self.addbtn.grid(
+            row=3, column=2
             )
-        # self.scroll_bar=ttk.Scrollbar(self.info_frame, orient='vertical')
-        # self.scroll_bar.grid(
-        #     row=6, column=0
-        #     )
+        
+        # Info Box
+        self.info_frame=ttk.Frame(master)
+        self.info_frame.grid(
+            row=4, column=0
+            )
         self.info_tree=ttk.Treeview(self.info_frame)
         self.info_tree.grid(
-            row=6, column=0, columnspan=4
+            row=5, column=0,
             )
-        # self.info_tree.yview_scroll(self.scroll_bar).anchor('ns')
         self.info_tree.config(columns=('key', 'no', 'url', 'name', 'yttype','size', 'dlspeed', 'status'))
         self.info_tree.column('#0', width=0, stretch='no')
         self.info_tree.column('key', width=0, stretch='no')
@@ -82,6 +83,13 @@ class UI(Actions, CallBacks):
         self.info_tree.heading('dlspeed', text='Down Speed')
         self.info_tree.heading('status', text='Status')
         # end info box
+        
+        # scrollbar for info tree
+        self.scroll_bar=ttk.Scrollbar(self.info_frame, orient='vertical', command=self.info_tree.yview)
+        self.scroll_bar.grid(
+            row=5, column=1, sticky='ns'
+            )
+        self.info_tree.config(yscroll=self.scroll_bar.set)
         # load data into info box if any
         try:
             with open('dbUrls.json', 'r') as db_rurl:
@@ -97,24 +105,25 @@ class UI(Actions, CallBacks):
         except:
             pass
         # Action buttons
-        self.framebtn=Frame(master).grid(
-            row=7, column=0
+        self.framebtn=ttk.Frame(master)
+        self.framebtn.grid(
+            row=6, column=0
             )
-        self.pauseallbtn=Button(self.framebtn, text='Pause All').grid(
-            row=8, column=0
-            )
-        self.pausebtn=Button(self.framebtn, text='Pause',
-        command=self._pause).grid(
-            row=8, column=1
-            )
-        self.removebtn=Button(self.framebtn, text='Remove',
-        command=self._remove).grid(
-            row=8, column=2
-            )
-        self.startbtn=Button(self.framebtn, text='Start',
-        command=self._startBtn).grid(
-            row=8, column=3
-            )
+        self.pauseallbtn=ttk.Button(self.framebtn, text='Pause All',
+        command=self._pauseall)
+        self.pauseallbtn.pack(side=LEFT)
+        
+        self.pausebtn=ttk.Button(self.framebtn, text='Pause',
+        command=self._pause)
+        self.pausebtn.pack(side=LEFT)
+        
+        self.removebtn=ttk.Button(self.framebtn, text='Remove',
+        command=self._remove)
+        self.removebtn.pack(side=LEFT)
+        
+        self.startbtn=ttk.Button(self.framebtn, text='Start',
+        command=self._startBtn)
+        self.startbtn.pack(side=RIGHT)
         
         # treeinfo bind
         self.info_tree.bind('<<TreeviewSelect>>', self.infoTreeSelect)
@@ -124,8 +133,3 @@ class UI(Actions, CallBacks):
         
         # url entry bind
         self.url_entry.bind('<1>', self.clear)
-        
-if __name__ == '__main__':
-    root=Tk()
-    start_ui = UI(root)
-    root.mainloop()

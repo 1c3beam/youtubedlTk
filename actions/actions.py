@@ -8,6 +8,7 @@ import os
 import sys
 from time import sleep
 import json
+from time import sleep
 
 
 class Actions:
@@ -17,6 +18,9 @@ class Actions:
     # part of the gui
     def _tail(self, command, filename, filename_err, state=None, d=None, key=None):
         if state == 'download':
+            thread_name=th.current_thread().getName()
+            self.procs.append(thread_name)
+            item=f'item{key}'
             os.chdir(d)
         if not os.path.exists(f'{self.base_dir}/.tmp'):
             os.mkdir(f'{self.base_dir}/.tmp')
@@ -36,108 +40,136 @@ class Actions:
                 words=line.split()
                 words_err=line_err.split()
                 if state == 'title':
-                    self._modifyTitle(words, words_err)
+                    self._checkTitle(words, words_err)
                 else:
                     self._modifyDl(words, words_err, key)
+                    if thread_name in self.killproc:
+                        self.killproc.remove(thread_name)
+                        self.procs.remove(thread_name)
+                        self.info_tree.set(f'item{key}', 'dlspeed', value='--')
+                        self.info_tree.set(f'item{key}', 'status', value='paused')
+                        proc.send_signal(sp.signal.SIGINT)
                 sleep(0.09)
-        with open(tmpfile, 'rb') as trFile,\
-        open(tmperrfile, 'rb') as trerrFile:
-            line=trFile.readlines()
-            line_err=trerrFile.readlines()
-            try:
-                words=line[-1].decode().split()
-            except:
-                words=None
-            try:
-                words_err=line_err[-1].decode.split()
-            except:
-                words_err=None
-            if state == 'title':
-                self._modifyTitle(words, words_err)
             else:
-                self._modifyDl(words, words_err, key)
+                if state == 'download':
+                    counter=0
+                    for status in self.status:
+                        if item == status[0]:
+                            if status[1] == 'Failed!':
+                                self.procs.pop(counter)
+                            else:
+                                self.status.pop(counter)
+                            self.info_tree.set(item, 'status', value=status[1])
+                            counter+=1
+            
+        # with open(tmpfile, 'rb') as trFile,\
+        # open(tmperrfile, 'rb') as trerrFile:
+        #     line=trFile.readlines()
+        #     line_err=trerrFile.readlines()
+        #     try:
+        #         words=line[-1].decode().split()
+        #     except:
+        #         words=None
+        #     try:
+        #         words_err=line_err[-1].decode().split()
+        #     except:
+        #         words_err=None
+        #     if state == 'download':
+        #         self._modifyDl(words, words_err, key)
+    
+    def _modifyTitle(self, words):
+        ytUrls={}
+        frmt=self.formats.get()
+        # checks dbUrls json
+        path=f'{self.base_dir}/dbUrls.json'
+        if not os.path.exists(path):
+            with open(f'{self.base_dir}/dbUrls.json', 'w') as db_wurl:
+                json.dump(ytUrls, db_wurl, indent=4)
+            with open(f'{self.base_dir}/dbUrls.json') as db_rurl:
+                data=json.load(db_rurl)
+        # if dbUrls have been initiated
+        else:
+            with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
+                data=json.load(db_rurl)
+        # end checking
+        num=[k for k, v in data.items() if v[-1] == 0]
+        key=str(len(data))
+        print('key:', key)
+        title=' '.join(words)
+        data[key]=[
+            self.url_entry.get(),
+            title,
+            f'{frmt}',
+            '--',
+            '--',
+            'idle ...',
+            0
+            ]
+        with open(f'{self.base_dir}/dbUrls.json', 'w') as db_wurl:
+            json.dump(data, db_wurl, indent=4)
+        with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
+            load_data=json.load(db_rurl)
+        infos=[v for v in load_data[key] if load_data[key][-1] == 0]
+        infos.pop(-1)
+        infos.insert(0, len(num)+1)
+        infos.insert(0, key)
+        self.info_tree.insert('', index=END, iid=f'item{key}', values=tuple(infos))
     
     # helper function for _getTitle
-    def _modifyTitle(self, words, words_err):
-        if words_err == None:
+    def _checkTitle(self, words, words_err):
+        if words == None:
             # this code here is for _getTitle's exiting while loop
+            pass
+        else:
+            if words == []:
+                pass
+            
+            else:
+                if words:
+                    self._modifyTitle(words)
+        if words_err == None:
             pass
         else:
             if words_err == []:
                 pass
             
             else:
-                if len(words_err) < 21:
-                    ytUrls={}
-                    frmt=self.formats.get()
-                    # checks dbUrls json
-                    path=f'{self.base_dir}/dbUrls.json'
-                    if not os.path.exists(path):
-                        with open(f'{self.base_dir}/dbUrls.json', 'w') as db_wurl:
-                            json.dump(ytUrls, db_wurl, indent=4)
-                        with open(f'{self.base_dir}/dbUrls.json') as db_rurl:
-                            data=json.load(db_rurl)
-                    # if dbUrls have been initiated
-                    else:
-                        with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
-                            data=json.load(db_rurl)
-                    # end checking
-                    num=[k for k, v in data.items() if v[-1] == 0]
-                    key=str(len(data))
-                    data[key]=[
-                        self.url_entry.get(),
-                        '--',
-                        f'{frmt}',
-                        '--',
-                        '--',
-                        'idle ...',
-                        0
-                        ]
-                    with open(f'{self.base_dir}/dbUrls.json', 'w') as db_wurl:
-                        json.dump(data, db_wurl, indent=4)
-                    with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
-                        load_data=json.load(db_rurl)
-                    infos=[v for v in load_data[key] if load_data[key][-1] == 0]
-                    infos.pop(-1)
-                    infos.insert(0, len(num)+1)
-                    infos.insert(0, key)
-                    self.info_tree.insert('', index=END, iid=f'item{key}', values=tuple(infos))
-        # if words_err == None:
-        #     pass
-        # else:
-        #     if words_err == []:
-        #         pass
-            
-        #     else:
-        #         try:
-        #             if words_err[-22] == 'ERROR:':
-        #                 print('title: Encountered an Error')
-        #         except:
-        #             pass # text 'WARNING:' are ignored
+                try:
+                    if words_err[-22] == 'ERROR:':
+                        msgbox.showerror('No Connection', 'Please check to see that you have an active internet connection!')
+                        print('title: Encountered an Error')
+                except Exception as e:
+                    # text 'WARNING:' are ignored
+                    print(e)
     
     # helper function for _dl 
     def _modifyDl(self, words, words_err, key):
         if words == None:
-            pass
+            print('words is None')
         else:
             if words == []:
                 pass
             # this code will check every output in tmpfile and
             # parse specific word to display to the user
-            if len(words) < 7:
+            elif len(words) < 3:
                 pass
-            else:
-                infos=[]
-                with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
-                    cdata=json.load(db_rurl)
-                for i in cdata[str(key)]:
-                    infos.append(i)
-                if words[-7] == '100.0%':
-                    words[-7]='Done'
+            elif len(words) == 6:
+                try:
+                    if words[-5] == '100%':
+                        self.status.append((f'item{key}', 'Done!'))
+                        self.info_tree.set(f'item{str(key)}', 'dlspeed', value='--')
+                        self.info_tree.set(f'item{str(key)}', 'status', value='Converting ...')
+                except Exception as e:
+                    print('< 7 exception:', e)
+            elif len(words) == 8 and words[0] != 'Deleting':
                 self.info_tree.set(f'item{str(key)}', 'size', value=words[-5])
                 self.info_tree.set(f'item{str(key)}', 'dlspeed', value=words[-3])
-                self.info_tree.set(f'item{str(key)}', 'ststus', value=words[-7])
-        
+                self.info_tree.set(f'item{str(key)}', 'status', value=words[-7])
+            else:
+                if '100%' in words:
+                    self.status.append((f'item{key}', 'Done!'))
+                    self.info_tree.set(f'item{str(key)}', 'dlspeed', value='--')
+                    self.info_tree.set(f'item{str(key)}', 'status', value='Converting ...')
         if words_err == None:
             pass
         # this code is for error checking
@@ -148,10 +180,10 @@ class Actions:
             else:
                 try:
                     if words_err[-22] == 'ERROR:':
-                        self.info_tree.set(f'item{str(key)}', 'status', value='Failed!')
-                        print('download: An error occured')
-                except:
-                    pass
+                        self.status.append((f'item{key}', 'Failed!'))
+                        # self.info_tree.set(f'item{str(key)}', 'status', value='Failed!')
+                except Exception as e:
+                    print(e)
 
     # helper function for startBtn
     def _downloadUrl(self, u, k, d, f):
@@ -160,7 +192,6 @@ class Actions:
         if f == 'mp4':
             cmd_dl=['youtube-dl', f'{u}']
             th.Thread(target=self._tail, args=(cmd_dl, filename, filename_err, 'download', d, k), name=f'item{k}').start()
-            # print('threads running:', th.)
         else:
             cmd_dl=['youtube-dl', '-x', f'{u}', '--audio-format' ,'mp3']
             th.Thread(target=self._tail, args=(cmd_dl, filename, filename_err, 'download', d, k), name=f'item{k}').start()
