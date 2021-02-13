@@ -78,7 +78,7 @@ class UI(Actions, CallBacks):
         self.info_tree.config(yscrollcommand=self.scroll_bar.set)
         # load data into info box if any
         try:
-            with open('dbUrls.json', 'r') as db_rurl:
+            with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
                 load_data=json.load(db_rurl)
             filtered_items={k:v for k,v in load_data.items() if v[-1] == 0}
             num=1
