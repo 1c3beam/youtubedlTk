@@ -90,7 +90,8 @@ class CallBacks:
                     infos.pop(0)
                     infos.pop(0)
                     infos.append(1)
-                    self.procs.remove(item)
+                    if self.procs:
+                        self.procs.remove(item)
                     self.info_tree.delete(item)
                 with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
                     load_data=json.load(db_rurl)
