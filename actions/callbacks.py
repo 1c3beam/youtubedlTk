@@ -51,14 +51,17 @@ class CallBacks:
         with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
             load_data=json.load(db_rurl)
         filtered_items={k:v for k,v in load_data.items() if v[-1] == 0}
-        for k in filtered_items.keys():
-            if f'item{k}' in self.procs:
-                filtered_items[k]=None
-        for k, v in filtered_items.items():
-            if v != None:
-                print('active threads:', th.active_count())
-                th.Thread(target=self._downloadUrl, args=(v[0], k, dest, frmt)).start()
-                sleep(0.4)
+        if not filtered_items:
+            msgbox.showerror('No Item', 'No item to download')
+        else:
+            for k in filtered_items.keys():
+                if f'item{k}' in self.procs:
+                    filtered_items[k]=None
+            for k, v in filtered_items.items():
+                if v != None:
+                    print('active threads:', th.active_count())
+                    th.Thread(target=self._downloadUrl, args=(v[0], k, dest, frmt)).start()
+                    sleep(0.4)
             
     # bind functions
     # infotree bind function
@@ -79,41 +82,41 @@ class CallBacks:
         self.url_entry.delete(0, END)
     
     def _remove(self):
-        try:
-            if self.item_selected:
-                items=self.info_tree.get_children('')
-                item_info=[self.info_tree.set(item) for item in items if item not in self.item_selected]
-                keys=[v for item in item_info for k, v in item.items() if k == 'key']
-                for item in self.item_selected:
-                    get_infos=self.info_tree.set(item)
-                    infos=[v for k, v in get_infos.items()]
-                    infos.pop(0)
-                    infos.pop(0)
-                    infos.append(1)
-                    if self.procs:
-                        self.procs.remove(item)
-                    self.info_tree.delete(item)
-                with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
-                    load_data=json.load(db_rurl)
-                load_data[str(get_infos['key'])]=infos
-                with open(f'{self.base_dir}/dbUrls.json', 'w') as db_wurl:
-                    json.dump(load_data, db_wurl, indent=4)
-                num=1
-                for key in keys:
-                    self.info_tree.set(f'item{key}', 'no', value=num)
-                    num+=1
-        except Exception as e:
-            print(e)
-            msgbox.showwarning('Select Item', 'No item to remove!')
-        
+        if not self.item_selected:
+            msgbox.showerror('Select Item', 'No item to remove!')
+        else:
+            for item in self.item_selected:
+                for k, v in self.status.items():
+                    if k == item and (v == 'done' or v == 'paused'):
+                        items=self.info_tree.get_children('')
+                        item_info=[self.info_tree.set(item) for item in items if item not in self.item_selected]
+                        keys=[v for item in item_info for k, v in item.items() if k == 'key']
+                        get_infos=self.info_tree.set(item)
+                        infos=[v for k, v in get_infos.items()]
+                        infos.pop(0)
+                        infos.pop(0)
+                        infos.append(1)
+                        self.info_tree.delete(item)
+                        with open(f'{self.base_dir}/dbUrls.json', 'r') as db_rurl:
+                            load_data=json.load(db_rurl)
+                        load_data[str(get_infos['key'])]=infos
+                        with open(f'{self.base_dir}/dbUrls.json', 'w') as db_wurl:
+                            json.dump(load_data, db_wurl, indent=4)
+                        num=1
+                        for key in keys:
+                            self.info_tree.set(f'item{key}', 'no', value=num)
+                            num+=1
+                
     def _pause(self):
         active_th=th.enumerate()
         keys=[i.getName() for i in active_th]
         try:
             for item in self.item_selected:
-                if item in keys:
-                    self.killproc.append(item)
-                else: print('error')
+                for k, v in self.status.items():
+                    if k == item and (v == 'downloading' or v == 'starting'):
+                        self.killproc.append(item)
+                        self.status[item]='paused'
+                        print(self.status)
         except Exception as e:
             print(e)
             msgbox.showerror('Select Item', 'Select an item')
@@ -121,7 +124,8 @@ class CallBacks:
         active_th=th.enumerate()
         active_th.pop(0)
         keys=[i.getName() for i in active_th]
-        for key in keys:
-            self.killproc.append(key)
+        for k, v in self.status.items():
+            if v == 'downloading' or v == 'starting':
+                self.killproc.append(k)
         if keys == []:
             msgbox.showerror('No Item', 'No items to pause')

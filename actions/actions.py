@@ -47,20 +47,23 @@ class Actions:
                         self.killproc.remove(thread_name)
                         self.procs.remove(thread_name)
                         self.info_tree.set(f'item{key}', 'dlspeed', value='--')
-                        self.info_tree.set(f'item{key}', 'status', value='paused')
+                        self.info_tree.set(f'item{key}', 'status', value=self.status[thread_name])
                         proc.send_signal(sp.signal.SIGINT)
                 sleep(0.09)
             else:
                 if state == 'download':
-                    counter=0
-                    for status in self.status:
-                        if item == status[0]:
-                            if status[1] == 'Failed!':
-                                self.procs.pop(counter)
-                            else:
-                                self.status.pop(counter)
-                            self.info_tree.set(item, 'status', value=status[1])
-                            counter+=1
+                    for k, v in self.status.items():
+                        if k == thread_name:
+                            if v == 'Failed!':
+                                self.procs.remove(thread_name)
+                            elif v == 'downloading':
+                                v = 'paused'
+                                self.status[thread_name]='paused'
+                            elif v == 'converting':
+                                v='done!'
+                                self.status[thread_name]='done'
+                                
+                            self.info_tree.set(item, 'status', value=v)
             
         # with open(tmpfile, 'rb') as trFile,\
         # open(tmperrfile, 'rb') as trerrFile:
@@ -151,25 +154,32 @@ class Actions:
                 pass
             # this code will check every output in tmpfile and
             # parse specific word to display to the user
-            elif len(words) < 3:
-                pass
+            elif len(words) < 5:
+                if words[0] == '[youtube]':
+                    self.status[f'item{key}']='starting'
+                    self.info_tree.set(f'item{key}', 'status', value='starting')
+                print(self.status)
             elif len(words) == 6:
                 try:
                     if words[-5] == '100%':
-                        self.status.append((f'item{key}', 'Done!'))
+                        self.status[f'item{key}']='converting'
                         self.info_tree.set(f'item{str(key)}', 'dlspeed', value='--')
                         self.info_tree.set(f'item{str(key)}', 'status', value='Converting ...')
+                        print(self.status)
                 except Exception as e:
                     print('< 7 exception:', e)
             elif len(words) == 8 and words[0] != 'Deleting':
+                self.status[f'item{key}']='downloading'
                 self.info_tree.set(f'item{str(key)}', 'size', value=words[-5])
                 self.info_tree.set(f'item{str(key)}', 'dlspeed', value=words[-3])
                 self.info_tree.set(f'item{str(key)}', 'status', value=words[-7])
+                print(self.status)
             else:
                 if '100%' in words:
-                    self.status.append((f'item{key}', 'Done!'))
+                    self.status[f'item{key}']='converting'
                     self.info_tree.set(f'item{str(key)}', 'dlspeed', value='--')
                     self.info_tree.set(f'item{str(key)}', 'status', value='Converting ...')
+                    print(self.status)
         if words_err == None:
             pass
         # this code is for error checking
@@ -180,8 +190,8 @@ class Actions:
             else:
                 try:
                     if words_err[-22] == 'ERROR:':
-                        self.status.append((f'item{key}', 'Failed!'))
-                        # self.info_tree.set(f'item{str(key)}', 'status', value='Failed!')
+                        self.status[f'item{key}']='Failed!'
+                        print(self.status)
                 except Exception as e:
                     print(e)
 

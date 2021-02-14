@@ -14,9 +14,10 @@ from actions.callbacks import CallBacks
 class UI(Actions, CallBacks):
 
     def __init__(self, master):
-        self.status=[]
+        self.status={}
         self.killproc=[]
         self.procs=[]
+        self.item_selected=None
         self.base_dir=Path(Path.home(), 'youtubedl0')
         if not os.path.exists(self.base_dir):
             os.mkdir(self.base_dir)
