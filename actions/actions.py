@@ -56,7 +56,7 @@ class Actions:
                         if k == thread_name:
                             if v == 'Failed!':
                                 self.procs.remove(thread_name)
-                            elif v == 'downloading':
+                            elif v == 'downloading' or v == 'starting':
                                 v = 'paused'
                                 self.status[thread_name]='paused'
                             elif v == 'converting':
